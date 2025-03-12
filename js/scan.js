@@ -45,13 +45,13 @@ document.getElementById("barcodeFileInput").addEventListener("change", (e) => {
   const file = e.target.files[0];
 
   if (file) {
-    // // Preview gambar sebelum diproses
-    // reader.onload = function (event) {
-    //   const imgElement = document.getElementById("barcodePreview");
-    //   imgElement.src = event.target.result;
-    //   imgElement.classList.remove("d-none");
-    // };
-    // reader.readAsDataURL(file);
+    // Preview gambar sebelum diproses
+    reader.onload = function (event) {
+      const imgElement = document.getElementById("barcodePreview");
+      imgElement.src = event.target.result;
+      imgElement.classList.remove("d-none");
+    };
+    reader.readAsDataURL(file);
 
     const html5QrCode = new Html5Qrcode("barcodeReader");
     html5QrCode

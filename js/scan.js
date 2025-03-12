@@ -41,7 +41,7 @@ document.querySelectorAll('input[name="qrMethod"]').forEach((radio) => {
 
 // File handling for barcode
 document.getElementById("barcodeFileInput").addEventListener("change", (e) => {
-  // const reader = new FileReader();
+  const reader = new FileReader();
   const file = e.target.files[0];
 
   if (file) {
@@ -120,8 +120,15 @@ async function startBarcodeScanner() {
     await barcodeScanner.start(
       { facingMode: "environment" },
       config,
-      (decodedText) => {
+      async (decodedText) => {
         document.getElementById("barcodeInput").value = decodedText;
+        document.getElementById("beepSound").play(); // Add beep sound
+        // Stop scanner after successful scan
+        await stopBarcodeScanner();
+        // Switch back to file upload
+        document.getElementById("barcodeFile").checked = true;
+        document.getElementById("barcodeCameraDiv").classList.add("d-none");
+        document.getElementById("barcodeFileDiv").classList.remove("d-none");
         checkMatch();
       },
       (error) => {
@@ -164,30 +171,41 @@ function startQRScanner() {
   };
 
   html5QrcodeScanner
-    .start({ facingMode: "environment" }, config, (decodedText) => {
-      document.getElementById("qrInput").value = decodedText;
-      checkMatch();
-    })
+    .start(
+      { facingMode: "environment" },
+      config,
+      async (decodedText) => {
+        document.getElementById("qrInput").value = decodedText;
+        document.getElementById("beepSound").play(); // Add beep sound
+        // Stop scanner after successful scan
+        await stopQRScanner();
+        // Switch back to file upload
+        document.getElementById("qrFile").checked = true;
+        document.getElementById("qrCameraDiv").classList.add("d-none");
+        document.getElementById("qrFileDiv").classList.remove("d-none");
+        checkMatch();
+      },
+      (errorMessage) => {
+        // console.log(errorMessage);
+      }
+    )
     .catch((err) => {
       console.error(`Unable to start scanning: ${err}`);
       alert("Error starting camera. Please try file upload instead.");
     });
-
-    // Switch back to file upload
-    document.getElementById("qrFile").checked = true;
-    const event = new Event("change");
-    document.getElementById("qrFile").dispatchEvent(event);
 }
 
-function stopBarcodeScanner() {
+async function stopBarcodeScanner() {
   if (barcodeScanner) {
-    barcodeScanner.stop().catch((err) => console.error(err));
+    await barcodeScanner.stop();
+    barcodeScanner = null;
   }
 }
 
-function stopQRScanner() {
+async function stopQRScanner() {
   if (html5QrcodeScanner) {
-    html5QrcodeScanner.stop().catch((err) => console.error(err));
+    await html5QrcodeScanner.stop();
+    html5QrcodeScanner = null;
   }
 }
 

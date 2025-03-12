@@ -97,8 +97,9 @@ header("Cross-Origin-Embedder-Policy: require-corp");
     </div>
 
     <!-- Audio -->
+    <audio id="beepSound" src="assets/audio/beep.mp3"></audio>
     <audio id="okSound" src="assets/audio/ok.mp3"></audio>
-    <audio id="ngSound" src="assets/audio/"></audio>
+    <audio id="ngSound" src="assets/audio/ng.mp3"></audio>
 
     <script src="js/scan.js"></script>
 </body>

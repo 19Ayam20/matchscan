@@ -54,15 +54,22 @@ document.getElementById("barcodeFileInput").addEventListener("change", (e) => {
     reader.readAsDataURL(file);
 
     const html5QrCode = new Html5Qrcode("barcodeReader");
+    const config = {
+      experimentalFeatures: {
+        useBarCodeDetectorIfSupported: true
+      },
+      formatsToSupport: [ Html5QrcodeSupportedFormats.PDF_417 ]
+    };
+
     html5QrCode
-      .scanFile(file, true)
+      .scanFile(file, true, config)
       .then((decodedText) => {
         document.getElementById("barcodeInput").value = decodedText;
         checkMatch();
       })
       .catch((err) => {
         console.error(err);
-        alert("Failed to read barcode from image. Please try another image.");
+        alert("Failed to read PDF417 barcode. Please try another image.");
       });
   }
 });
@@ -83,15 +90,22 @@ document.getElementById("qrFileInput").addEventListener("change", (e) => {
 
     // Proses scan QR
     const html5QrCode = new Html5Qrcode("qrReader");
+    const config = {
+      experimentalFeatures: {
+        useBarCodeDetectorIfSupported: true
+      },
+      formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ]
+    };
+
     html5QrCode
-      .scanFile(file, true)
+      .scanFile(file, true, config)
       .then((decodedText) => {
         document.getElementById("qrInput").value = decodedText;
         checkMatch();
       })
       .catch((err) => {
         console.error(err);
-        alert("Failed to read QR code from image. Please try another image.");
+        alert("Failed to read QR code. Please try another image.");
       });
   }
 });
@@ -110,7 +124,10 @@ async function startBarcodeScanner() {
     const config = {
       fps: 10,
       qrbox: { width: 250, height: 250 },
-      formatsToSupport: [Html5QrcodeSupportedFormats.PDF_417],
+      formatsToSupport: [ Html5QrcodeSupportedFormats.PDF_417 ],
+      experimentalFeatures: {
+        useBarCodeDetectorIfSupported: true
+      }
     };
 
     await navigator.mediaDevices.getUserMedia({
@@ -168,6 +185,10 @@ function startQRScanner() {
   const config = {
     fps: 10,
     qrbox: { width: 250, height: 250 },
+    formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ],
+    experimentalFeatures: {
+      useBarCodeDetectorIfSupported: true
+    }
   };
 
   html5QrcodeScanner
@@ -216,15 +237,21 @@ function checkMatch() {
   const resultDiv = document.getElementById("result");
 
   if (barcode && qrCode) {
-    if (barcode === qrCode) {
-      resultDiv.innerHTML =
-        '<p class="display-4 p-1 bg-success text-light" style="font-weight:bold">OK</p>';
-      document.getElementById("okSound").play();
-    } else {
-      resultDiv.innerHTML =
-        '<p class="display-4 p-1 bg-danger text-light" style="font-weight:bold">NG</p>';
-      document.getElementById("ngSound").play();
-    }
+    // Clear previous result
+    resultDiv.innerHTML = '<p class="display-4 p-1 bg-secondary text-light" style="font-weight:bold">Checking...</p>';
+
+    // Add 2 second delay
+    setTimeout(() => {
+      if (barcode === qrCode) {
+        resultDiv.innerHTML =
+          '<p class="display-4 p-1 bg-success text-light" style="font-weight:bold">OK</p>';
+        document.getElementById("okSound").play();
+      } else {
+        resultDiv.innerHTML =
+          '<p class="display-4 p-1 bg-danger text-light" style="font-weight:bold">NG</p>';
+        document.getElementById("ngSound").play();
+      }
+    }, 2000); // 2000 milliseconds = 2 seconds
   }
 }
 

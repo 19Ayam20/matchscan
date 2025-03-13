@@ -50,6 +50,7 @@ document.getElementById("barcodeFileInput").addEventListener("change", (e) => {
       const imgElement = document.getElementById("barcodePreview");
       imgElement.src = event.target.result;
       imgElement.classList.remove("d-none");
+      imgElement.style.animation = "fadeIn 0.5s ease-out";
     };
     reader.readAsDataURL(file);
 
@@ -89,6 +90,7 @@ document.getElementById("qrFileInput").addEventListener("change", (e) => {
       const imgElement = document.getElementById("qrPreview");
       imgElement.src = event.target.result;
       imgElement.classList.remove("d-none");
+      imgElement.style.animation = "fadeIn 0.5s ease-out";
     };
     reader.readAsDataURL(file);
 
@@ -243,39 +245,48 @@ function checkMatch() {
   const barcode = document.getElementById("barcodeInput").value;
   const qrCode = document.getElementById("qrInput").value;
   const resultDiv = document.getElementById("result");
-  // const resetButtonDiv = document.getElementById("resetButtonDiv");
 
   if (barcode && qrCode) {
-    // Clear previous result
-    resultDiv.innerHTML =
-      '<p class="display-4 p-1 bg-secondary text-light" style="font-weight:bold">Checking...</p>';
-      // resetButtonDiv.classList.add("d-none");
+    // Animasi checking
+    showResult("Checking...", "#ffffff", "bg-secondary");
 
-    // Add checking delay
     setTimeout(() => {
       if (barcode === qrCode) {
-        resultDiv.innerHTML =
-          '<p class="display-4 p-1 bg-success text-light" style="font-weight:bold">OK</p>';
+        showResult("OK", "#ffffff", "bg-success");
         document.getElementById("okSound").play();
       } else {
-        resultDiv.innerHTML =
-          '<p class="display-4 p-1 bg-danger text-light" style="font-weight:bold">NG</p>';
+        showResult("NG", "#ffffff", "bg-danger");
         document.getElementById("ngSound").play();
       }
-      // resetButtonDiv.classList.remove("d-none");
-    }, 1000); // 1000 milliseconds = 1 seconds
+    }, 1000);
   }
 }
 
-// Initialize on page load
-document.addEventListener("DOMContentLoaded", () => {
-  if (document.getElementById("barcodeCamera").checked) {
-    startBarcodeScanner();
+function showResult(message, color, bgColor) {
+  const resultElement = document.getElementById("result").querySelector("p");
+  resultElement.textContent = message;
+  resultElement.style.color = color;
+  resultElement.style.fontWeight = "bold";
+
+  // Reset animation
+  resultElement.style.animation = "none";
+  void resultElement.offsetWidth;
+  resultElement.style.animation = "resultPop 0.5s ease-out";
+
+  // Animasi background
+  resultElement.classList.remove("bg-secondary", "bg-success", "bg-danger");
+  resultElement.classList.add(bgColor);
+  resultElement.style.transition = "all 0.5s ease";
+
+  // Show reset button with animation
+  const resetBtn = document.getElementById("resetButtonDiv");
+  if (message !== "Checking...") {
+      resetBtn.classList.remove("d-none");
+      resetBtn.style.animation = "fadeInUp 0.5s ease-out";
+  } else {
+      resetBtn.classList.add("d-none");
   }
-  if (document.getElementById("qrCamera").checked) {
-    startQRScanner();
-  }
-});
+}
 
 // Handle reset button
 document.getElementById("resetButton").addEventListener("click", function () {

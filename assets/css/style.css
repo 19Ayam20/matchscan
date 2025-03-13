@@ -1,0 +1,106 @@
+/* Animasi fade in */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Animasi pulse untuk kamera */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 15px rgba(13, 110, 253, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(13, 110, 253, 0);
+  }
+}
+
+/* Animasi hasil */
+@keyframes resultPop {
+  0% {
+    transform: scale(0.5);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Styling tambahan */
+.card {
+  animation: fadeIn 1s ease-out;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2) !important;
+}
+
+.display-4 {
+    font-weight: bold !important;
+}
+
+#barcodeReader,
+/* #qrReader {
+  border: 3px solid #0d6efd;
+  border-radius: 15px;
+  overflow: hidden;
+  animation: pulse 2s infinite;
+} */
+
+#result p {
+  animation: resultPop 0.5s ease-out;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn {
+  transition: all 0.3s ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+#barcodePreview,
+#qrPreview {
+  border: 2px dashed #0d6efd;
+  border-radius: 10px;
+  padding: 5px;
+  transition: all 0.3s ease;
+}
+
+#barcodePreview:hover,
+#qrPreview:hover {
+  transform: scale(1.02);
+}
+
+#resetButton {
+  animation: shake 1.5s infinite;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(2deg);
+  }
+  50% {
+    transform: rotate(-2deg);
+  }
+  75% {
+    transform: rotate(1deg);
+  }
+}

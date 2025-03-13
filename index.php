@@ -90,6 +90,13 @@ header("Cross-Origin-Embedder-Policy: require-corp");
                         <div id="result" class="text-center mt-4">
                             <p class="display-4 font-weight-bolder"></p>
                         </div>
+
+                        <!-- Reset -->
+                        <div id="resetButtonDiv" class="text-center mt-3">
+                            <button id="resetButton" class="btn btn-danger p-3" style="font-weight: bold;">
+                                Reset
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

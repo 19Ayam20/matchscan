@@ -56,9 +56,13 @@ document.getElementById("barcodeFileInput").addEventListener("change", (e) => {
     const html5QrCode = new Html5Qrcode("barcodeReader");
     const config = {
       experimentalFeatures: {
-        useBarCodeDetectorIfSupported: true
+        useBarCodeDetectorIfSupported: true,
       },
-      formatsToSupport: [ Html5QrcodeSupportedFormats.PDF_417 ]
+      formatsToSupport: [Html5QrcodeSupportedFormats.PDF_417],
+      hideQrBoxElement: true,
+      qrbox: { width: 250, height: 250 }, // Optional - defines scan area size
+      showTorchButtonIfSupported: false, // Hide torch button
+      showZoomSliderIfSupported: false, // Hide zoom slider
     };
 
     html5QrCode
@@ -92,9 +96,13 @@ document.getElementById("qrFileInput").addEventListener("change", (e) => {
     const html5QrCode = new Html5Qrcode("qrReader");
     const config = {
       experimentalFeatures: {
-        useBarCodeDetectorIfSupported: true
+        useBarCodeDetectorIfSupported: true,
       },
-      formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ]
+      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+      hideQrBoxElement: true,
+      qrbox: { width: 250, height: 250 }, // Optional - defines scan area size
+      showTorchButtonIfSupported: false, // Hide torch button
+      showZoomSliderIfSupported: false, // Hide zoom slider
     };
 
     html5QrCode
@@ -124,10 +132,10 @@ async function startBarcodeScanner() {
     const config = {
       fps: 10,
       qrbox: { width: 250, height: 250 },
-      formatsToSupport: [ Html5QrcodeSupportedFormats.PDF_417 ],
+      formatsToSupport: [Html5QrcodeSupportedFormats.PDF_417],
       experimentalFeatures: {
-        useBarCodeDetectorIfSupported: true
-      }
+        useBarCodeDetectorIfSupported: true,
+      },
     };
 
     await navigator.mediaDevices.getUserMedia({
@@ -185,10 +193,10 @@ function startQRScanner() {
   const config = {
     fps: 10,
     qrbox: { width: 250, height: 250 },
-    formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ],
+    formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
     experimentalFeatures: {
-      useBarCodeDetectorIfSupported: true
-    }
+      useBarCodeDetectorIfSupported: true,
+    },
   };
 
   html5QrcodeScanner
@@ -235,10 +243,13 @@ function checkMatch() {
   const barcode = document.getElementById("barcodeInput").value;
   const qrCode = document.getElementById("qrInput").value;
   const resultDiv = document.getElementById("result");
+  // const resetButtonDiv = document.getElementById("resetButtonDiv");
 
   if (barcode && qrCode) {
     // Clear previous result
-    resultDiv.innerHTML = '<p class="display-4 p-1 bg-secondary text-light" style="font-weight:bold">Checking...</p>';
+    resultDiv.innerHTML =
+      '<p class="display-4 p-1 bg-secondary text-light" style="font-weight:bold">Checking...</p>';
+      // resetButtonDiv.classList.add("d-none");
 
     // Add checking delay
     setTimeout(() => {
@@ -251,6 +262,7 @@ function checkMatch() {
           '<p class="display-4 p-1 bg-danger text-light" style="font-weight:bold">NG</p>';
         document.getElementById("ngSound").play();
       }
+      // resetButtonDiv.classList.remove("d-none");
     }, 1000); // 1000 milliseconds = 1 seconds
   }
 }
@@ -263,4 +275,37 @@ document.addEventListener("DOMContentLoaded", () => {
   if (document.getElementById("qrCamera").checked) {
     startQRScanner();
   }
+});
+
+// Handle reset button
+document.getElementById("resetButton").addEventListener("click", function () {
+  // Reset input values
+  document.getElementById("barcodeInput").value = "";
+  document.getElementById("qrInput").value = "";
+
+  // Reset preview images
+  document.getElementById("barcodePreview").classList.add("d-none");
+  document.getElementById("qrPreview").classList.add("d-none");
+
+  // Reset file inputs
+  document.getElementById("barcodeFileInput").value = "";
+  document.getElementById("qrFileInput").value = "";
+
+  // Reset result display
+  document.getElementById("result").innerHTML =
+    '<p class="display-4 font-weight-bolder"></p>';
+
+  // Stop any active scanners
+  stopBarcodeScanner();
+  stopQRScanner();
+
+  // Reset to file upload mode
+  document.getElementById("barcodeFile").checked = true;
+  document.getElementById("qrFile").checked = true;
+
+  // Show file upload divs and hide camera divs
+  document.getElementById("barcodeFileDiv").classList.remove("d-none");
+  document.getElementById("barcodeCameraDiv").classList.add("d-none");
+  document.getElementById("qrFileDiv").classList.remove("d-none");
+  document.getElementById("qrCameraDiv").classList.add("d-none");
 });

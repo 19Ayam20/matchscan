@@ -240,7 +240,7 @@ function checkMatch() {
     // Clear previous result
     resultDiv.innerHTML = '<p class="display-4 p-1 bg-secondary text-light" style="font-weight:bold">Checking...</p>';
 
-    // Add 2 second delay
+    // Add checking delay
     setTimeout(() => {
       if (barcode === qrCode) {
         resultDiv.innerHTML =
@@ -251,7 +251,7 @@ function checkMatch() {
           '<p class="display-4 p-1 bg-danger text-light" style="font-weight:bold">NG</p>';
         document.getElementById("ngSound").play();
       }
-    }, 2000); // 2000 milliseconds = 2 seconds
+    }, 1000); // 1000 milliseconds = 1 seconds
   }
 }
 

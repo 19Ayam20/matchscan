@@ -55,7 +55,7 @@ header("Cross-Origin-Embedder-Policy: require-corp");
                                 class="<?php echo isset($_POST['barcodeMethod']) && $_POST['barcodeMethod'] == 'camera' ? 'd-none' : ''; ?>">
                                 <div class="d-none" id="barcodeReader"></div>
                             </div>
-                            <input type="text" id="barcodeInput" class="form-control mt-2 text-muted" readonly
+                            <input type="text" id="barcodeInput" class="form-control mt-2 text-muted"  
                                 placeholder="Barcode value will appear here">
                         </div>
 
@@ -83,7 +83,7 @@ header("Cross-Origin-Embedder-Policy: require-corp");
                                 <div id="qrReader"></div>
                             </div>
 
-                            <input type="text" id="qrInput" class="form-control mt-2 text-muted" readonly
+                            <input type="text" id="qrInput" class="form-control mt-2 text-muted"  
                                 placeholder="QR code value will appear here">
                         </div>
 

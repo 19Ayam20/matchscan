@@ -320,3 +320,38 @@ document.getElementById("resetButton").addEventListener("click", function () {
   document.getElementById("qrFileDiv").classList.remove("d-none");
   document.getElementById("qrCameraDiv").classList.add("d-none");
 });
+
+// Auto-focus ke input barcode saat halaman dimuat
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('barcodeInput').focus();
+});
+
+// Handle event input untuk kedua field
+document.getElementById('barcodeInput').addEventListener('input', function(e) {
+  if(this.value.length > 0) {
+      // Auto move focus ke QR input setelah barcode terisi
+      document.getElementById('qrInput').focus();
+  }
+});
+
+document.getElementById('qrInput').addEventListener('input', function(e) {
+  if(this.value.length > 0) {
+      // Auto trigger checking ketika QR terisi
+      checkMatch();
+  }
+});
+
+// Handle Enter key untuk physical scanner
+document.getElementById('barcodeInput').addEventListener('keypress', function(e) {
+  if(e.key == 'Enter') {
+      e.preventDefault();
+      document.getElementById('qrInput').focus();
+  }
+});
+
+document.getElementById('qrInput').addEventListener('keypress', function(e) {
+  if(e.key == 'Enter') {
+      e.preventDefault();
+      checkMatch();
+  }
+});

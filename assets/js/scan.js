@@ -3,7 +3,7 @@ let barcodeScanner = null;
 
 // Handle method selection for barcode
 document.querySelectorAll('input[name="barcodeMethod"]').forEach((radio) => {
-  radio.addEventListener("change", (e) => {
+  radio.addEventListener("change", () => {
     const isCamera = document.getElementById("barcodeCamera").checked;
     const fileDiv = document.getElementById("barcodeFileDiv");
     const cameraDiv = document.getElementById("barcodeCameraDiv");
@@ -22,7 +22,7 @@ document.querySelectorAll('input[name="barcodeMethod"]').forEach((radio) => {
 
 // Handle method selection for QR
 document.querySelectorAll('input[name="qrMethod"]').forEach((radio) => {
-  radio.addEventListener("change", (e) => {
+  radio.addEventListener("change", () => {
     const isCamera = document.getElementById("qrCamera").checked;
     const fileDiv = document.getElementById("qrFileDiv");
     const cameraDiv = document.getElementById("qrCameraDiv");
@@ -54,6 +54,7 @@ document.getElementById("barcodeFileInput").addEventListener("change", (e) => {
     };
     reader.readAsDataURL(file);
 
+    // Make sure Html5Qrcode is loaded from the html5-qrcode library before this script runs
     const html5QrCode = new Html5Qrcode("barcodeReader");
     const config = {
       experimentalFeatures: {
@@ -69,7 +70,12 @@ document.getElementById("barcodeFileInput").addEventListener("change", (e) => {
     html5QrCode
       .scanFile(file, true, config)
       .then((decodedText) => {
+        decodedText = decodedText.replace(
+          /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g,
+          ""
+        );
         document.getElementById("barcodeInput").value = decodedText;
+        fillBarcodeFields(decodedText);
         checkMatch();
       })
       .catch((err) => {
@@ -110,8 +116,12 @@ document.getElementById("qrFileInput").addEventListener("change", (e) => {
     html5QrCode
       .scanFile(file, true, config)
       .then((decodedText) => {
+        decodedText = decodedText.replace(
+          /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g,
+          ""
+        ); // Tambahkan trim di sini
         document.getElementById("qrInput").value = decodedText;
-        checkMatch();
+        updateQrExtractedFields();
       })
       .catch((err) => {
         console.error(err);
@@ -148,7 +158,13 @@ async function startBarcodeScanner() {
       { facingMode: "environment" },
       config,
       async (decodedText) => {
+        // Trim whitespace from the decoded text
+        decodedText = decodedText.replace(
+          /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g,
+          ""
+        );
         document.getElementById("barcodeInput").value = decodedText;
+        fillBarcodeFields(decodedText);
         document.getElementById("beepSound").play(); // Add beep sound
         // Stop scanner after successful scan
         await stopBarcodeScanner();
@@ -206,7 +222,12 @@ function startQRScanner() {
       { facingMode: "environment" },
       config,
       async (decodedText) => {
+        decodedText = decodedText.replace(
+          /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g,
+          ""
+        ); // Tambahkan trim di sini
         document.getElementById("qrInput").value = decodedText;
+        updateQrExtractedFields();
         document.getElementById("beepSound").play(); // Add beep sound
         // Stop scanner after successful scan
         await stopQRScanner();
@@ -214,10 +235,9 @@ function startQRScanner() {
         document.getElementById("qrFile").checked = true;
         document.getElementById("qrCameraDiv").classList.add("d-none");
         document.getElementById("qrFileDiv").classList.remove("d-none");
-        checkMatch();
       },
-      (errorMessage) => {
-        // console.log(errorMessage);
+      () => {
+        // error callback intentionally left blank
       }
     )
     .catch((err) => {
@@ -243,23 +263,90 @@ async function stopQRScanner() {
 // Existing checkMatch function remains the same
 function checkMatch() {
   const barcode = document.getElementById("barcodeInput").value;
-  const qrCode = document.getElementById("qrInput").value;
-  const resultDiv = document.getElementById("result");
+  const qrExtracted = document.getElementById("qrExtracted").value;
 
-  if (barcode && qrCode) {
+  if (barcode && qrExtracted) {
+    // Ambil substring barcode dari karakter ke-12 sampai ke-25 (indeks 11-25)
+    const barcodeSub = barcode.substring(11, 25);
     // Animasi checking
     showResult("Checking...", "#ffffff", "bg-secondary");
 
     setTimeout(() => {
-      if (barcode === qrCode) {
+      let status = "NG";
+      if (barcodeSub === qrExtracted) {
         showResult("OK", "#ffffff", "bg-success");
         document.getElementById("okSound").play();
+        status = "OK";
       } else {
         showResult("NG", "#ffffff", "bg-danger");
         document.getElementById("ngSound").play();
       }
+      addHistory(barcodeSub, qrExtracted, status);
     }, 1000);
   }
+}
+
+/*
+  Function to add history entry
+  This function creates a new row in the history table with the current date, barcode, QR, and status
+  It also applies the appropriate CSS class based on the status (OK or NG)
+*/
+function saveHistoryToDB(barcode, qr, status, time) {
+  fetch('index.php?action=save_history', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ barcode, qr, status, waktu: time })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (!data.success) {
+        console.log('Gagal simpan history: ' + (data.message || 'Unknown error'));
+      } else {
+        // Jika sukses, fetch ulang history dari database
+        loadHistoryFromDB();
+      }
+    })
+    .catch(err => {
+      console.log('AJAX error: ' + err);
+    });
+}
+
+function addHistory(barcode, qr, status) {
+  const now = new Date();
+  const options = {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  };
+  const time =
+    now.toLocaleDateString("id-ID", options) +
+    " - " +
+    now.toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  // Tidak langsung tambah ke tabel, hanya simpan ke database
+  saveHistoryToDB(barcode, qr, status, time);
+}
+
+// Fungsi untuk load history dari database saat halaman dimuat
+function loadHistoryFromDB() {
+  fetch('index.php?action=get_history')
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        const tbody = document.querySelector('#history tbody');
+        tbody.innerHTML = '';
+        data.data.forEach(row => {
+          const statusClass = row.status === "OK" ? "text-success" : "text-danger";
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${row.waktu}</td><td>${row.barcode}</td><td>${row.qr}</td><td class="fw-bold text-center ${statusClass}">${row.status}</td>`;
+          tbody.appendChild(tr);
+        });
+      }
+    });
 }
 
 function showResult(message, color, bgColor) {
@@ -281,12 +368,18 @@ function showResult(message, color, bgColor) {
   // Show reset button with animation
   const resetBtn = document.getElementById("resetButtonDiv");
   if (message !== "Checking...") {
-      resetBtn.classList.remove("d-none");
-      resetBtn.style.animation = "fadeInUp 0.5s ease-out";
+    resetBtn.classList.remove("d-none");
+    resetBtn.style.animation = "fadeInUp 0.5s ease-out";
   } else {
-      resetBtn.classList.add("d-none");
+    resetBtn.classList.add("d-none");
   }
 }
+
+// Panggil loadHistoryFromDB saat halaman dimuat
+window.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("barcodeInput").focus();
+  loadHistoryFromDB();
+});
 
 // Handle reset button
 document.getElementById("resetButton").addEventListener("click", function () {
@@ -319,39 +412,90 @@ document.getElementById("resetButton").addEventListener("click", function () {
   document.getElementById("barcodeCameraDiv").classList.add("d-none");
   document.getElementById("qrFileDiv").classList.remove("d-none");
   document.getElementById("qrCameraDiv").classList.add("d-none");
+
+  // Kosongkan field pecahan barcode
+  document.getElementById("barcodeField1").value = "";
+  document.getElementById("barcodeField2").value = "";
+  document.getElementById("barcodeField3").value = "";
+  document.getElementById("qrExtracted").value = "";
+
+  // Set focus back to barcode input
+  document.getElementById("barcodeInput").focus();
 });
 
 // Auto-focus ke input barcode saat halaman dimuat
-window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('barcodeInput').focus();
-});
-
-// Handle event input untuk kedua field
-document.getElementById('barcodeInput').addEventListener('input', function(e) {
-  if(this.value.length > 0) {
-      // Auto move focus ke QR input setelah barcode terisi
-      document.getElementById('qrInput').focus();
-  }
-});
-
-document.getElementById('qrInput').addEventListener('input', function(e) {
-  if(this.value.length > 0) {
-      // Auto trigger checking ketika QR terisi
-      checkMatch();
-  }
+window.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("barcodeInput").focus();
 });
 
 // Handle Enter key untuk physical scanner
-document.getElementById('barcodeInput').addEventListener('keypress', function(e) {
-  if(e.key == 'Enter') {
+document
+  .getElementById("barcodeInput")
+  .addEventListener("keypress", function (e) {
+    if (e.key == "Enter") {
       e.preventDefault();
-      document.getElementById('qrInput').focus();
+      this.value = this.value.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, "");
+      document.getElementById("qrInput").focus();
+    }
+  });
+
+document.getElementById("qrInput").addEventListener("keypress", function (e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    const qrValue = this.value.replace(
+      /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g,
+      ""
+    );
+    this.value = qrValue;
+    updateQrExtractedFields();
+    if (qrValue.endsWith(".pdf") || qrValue.includes(".pdf")) {
+      const a = document.createElement("a");
+      a.href = qrValue;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } else {
+      checkMatch();
+    }
+    setTimeout(() => {
+      document.getElementById("resetButton").focus();
+    }, 1500);
   }
 });
 
-document.getElementById('qrInput').addEventListener('keypress', function(e) {
-  if(e.key == 'Enter') {
-      e.preventDefault();
-      checkMatch();
+// Function to fill barcode fields based on the input
+function fillBarcodeFields(barcode) {
+  document.getElementById("barcodeField1").value =
+    barcode.substring(0, 10) || "";
+  document.getElementById("barcodeField2").value =
+    barcode.substring(11, 25) || "";
+  document.getElementById("barcodeField3").value =
+    barcode.substring(25, 69) || "";
+}
+
+// Function to extract the QR code value from the input
+// Assuming the QR code is a URL and we want to extract a specific part
+function extractQrValue(qrCode) {
+  if (qrCode && qrCode.length >= 54 && qrCode.startsWith("http")) {
+    return qrCode.substring(40, 54);
   }
-});
+  return qrCode || "";
+}
+
+function updateBarcodeFields() {
+  const barcode = document.getElementById("barcodeInput").value;
+  fillBarcodeFields(barcode);
+}
+
+function updateQrExtractedFields() {
+  const qrCode = document.getElementById("qrInput").value;
+  document.getElementById("qrExtracted").value = extractQrValue(qrCode);
+  checkMatch();
+}
+
+document
+  .getElementById("barcodeInput")
+  .addEventListener("input", updateBarcodeFields);
+// document.getElementById("qrInput").addEventListener("input", updateQrExtractedFields);

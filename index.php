@@ -1,24 +1,60 @@
 <?php
-header("Cross-Origin-Opener-Policy: same-origin");
-header("Cross-Origin-Embedder-Policy: require-corp");
+    header("Cross-Origin-Opener-Policy: same-origin");
+    header("Cross-Origin-Embedder-Policy: require-corp");
+    // Handler AJAX untuk simpan dan ambil history
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
+    include_once 'config/inc.connection.php';
+    header("Access-Control-Allow-Origin: *");
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] === 'save_history') {
+        header('Content-Type: application/json');
+        $data = json_decode(file_get_contents('php://input'), true);
+        $barcode = isset($data['barcode']) ? $data['barcode'] : '';
+        $qr = isset($data['qr']) ? $data['qr'] : '';
+        $status = isset($data['status']) ? $data['status'] : '';
+        $waktu = isset($data['waktu']) ? $data['waktu'] : date('Y-m-d H:i:s');
+        try {
+            $stmt = $koneksidb->prepare('INSERT INTO scan_history (waktu, barcode, qr, status) VALUES (?, ?, ?, ?)');
+            $stmt->execute(array($waktu, $barcode, $qr, $status));
+            echo json_encode(array('success' => true));
+        } catch (PDOException $e) {
+            echo json_encode(array('success' => false, 'message' => $e->getMessage()));
+        }
+        exit;
+    }
+    if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'get_history') {
+        header('Content-Type: application/json');
+        try {
+            $stmt = $koneksidb->query('SELECT waktu, barcode, qr, status FROM scan_history ORDER BY id DESC LIMIT 100');
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            echo json_encode(array('success' => true, 'data' => $rows));
+        } catch (PDOException $e) {
+            echo json_encode(array('success' => false, 'message' => $e->getMessage()));
+        }
+        exit;
+    }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Matchcode Operasional</title>
-    <!-- Di header index.php -->
+    <title>MSC YIMM PARTS</title>
+    <!-- CSS -->
     <link href="assets/css/style.css" rel="stylesheet">
+    <!-- BOOTSTRAP -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script src="library/html5-qrcode/minified/html5-qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- JQUERY -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <!-- LIB -->
+    <script src="library/html5-qrcode/minified/html5-qrcode.min.js"></script>
 
 </head>
-
-<!-- Di body index.php -->
 
 <body class="bg-light h-100 w-100">
     <div class="container-fluid d-flex align-items-center justify-content-center min-vh-100">
@@ -26,7 +62,7 @@ header("Cross-Origin-Embedder-Policy: require-corp");
             <div id="cameraWarning" class="alert alert-danger d-none text-center mb-3">
                 Browser/Device tidak mendukung fitur kamera. Gunakan file upload!
             </div>
-            <div class="col-md-10">
+            <div class="col-md-8">
                 <div class="card shadow mb-5">
                     <div class="card-header bg-primary text-white">
                         <h3 class="card-title text-center">Barcode & QR Code Matching</h3>
@@ -55,8 +91,19 @@ header("Cross-Origin-Embedder-Policy: require-corp");
                                 class="<?php echo isset($_POST['barcodeMethod']) && $_POST['barcodeMethod'] == 'camera' ? 'd-none' : ''; ?>">
                                 <div class="d-none" id="barcodeReader"></div>
                             </div>
-                            <input type="text" id="barcodeInput" class="form-control mt-2 text-muted"  
+                            <input type="text" id="barcodeInput" class="form-control mt-2 text-muted"
                                 placeholder="Barcode value will appear here">
+                            <div class="row mt-2">
+                                <div class="col-md-4 mb-2">
+                                    <input type="text" id="barcodeField1" class="form-control" placeholder="Field 1 (1-11)" disabled>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <input type="text" id="barcodeField2" class="form-control" placeholder="Field 2 (12-25)" disabled>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <input type="text" id="barcodeField3" class="form-control" placeholder="Field 3 (26-69)" disabled>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- QR Code Scanner -->
@@ -83,8 +130,9 @@ header("Cross-Origin-Embedder-Policy: require-corp");
                                 <div id="qrReader"></div>
                             </div>
 
-                            <input type="text" id="qrInput" class="form-control mt-2 text-muted"  
+                            <input type="text" id="qrInput" class="form-control mt-2 text-muted"
                                 placeholder="QR code value will appear here">
+                            <input type="text" id="qrExtracted" class="form-control mt-2" placeholder="QR Extracted (40-54)" disabled>
                         </div>
 
                         <!-- Result -->
@@ -97,6 +145,31 @@ header("Cross-Origin-Embedder-Policy: require-corp");
                             <button id="resetButton" class="btn btn-danger p-3" style="font-weight: bold;">
                                 Reset
                             </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow mb-5">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="card-title text-center">History Scan</h3>
+                    </div>
+                    <div class="card-body">
+                        <!-- History -->
+                        <div id="history" class="mt-4">
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle" id="historyTable">
+                                    <thead class="table-dark text-center">
+                                        <tr>
+                                            <th>Waktu</th>
+                                            <th>Barcode</th>
+                                            <th>QR</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-break" style="width: 90px; font-size: 16px;"></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>

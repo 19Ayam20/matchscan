@@ -76,6 +76,7 @@ document.getElementById("barcodeFileInput").addEventListener("change", (e) => {
         );
         document.getElementById("barcodeInput").value = decodedText;
         fillBarcodeFields(decodedText);
+        updateLihatPdfBtn();
         checkMatch();
       })
       .catch((err) => {
@@ -122,6 +123,9 @@ document.getElementById("qrFileInput").addEventListener("change", (e) => {
         ); // Tambahkan trim di sini
         document.getElementById("qrInput").value = decodedText;
         updateQrExtractedFields();
+        updateLihatPdfBtn();
+        checkMatch();
+        document.getElementById("resetButton").focus();
       })
       .catch((err) => {
         console.error(err);
@@ -292,22 +296,24 @@ function checkMatch() {
   It also applies the appropriate CSS class based on the status (OK or NG)
 */
 function saveHistoryToDB(barcode, qr, status, time) {
-  fetch('index.php?action=save_history', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ barcode, qr, status, waktu: time })
+  fetch("index.php?action=save_history", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ barcode, qr, status, waktu: time }),
   })
-    .then(res => res.json())
-    .then(data => {
+    .then((res) => res.json())
+    .then((data) => {
       if (!data.success) {
-        console.log('Gagal simpan history: ' + (data.message || 'Unknown error'));
+        console.log(
+          "Gagal simpan history: " + (data.message || "Unknown error")
+        );
       } else {
-        // Jika sukses, fetch ulang history dari database
+        // Jika sukses, fetch ulang history dari database (dengan paging/search)
         loadHistoryFromDB();
       }
     })
-    .catch(err => {
-      console.log('AJAX error: ' + err);
+    .catch((err) => {
+      console.log("AJAX error: " + err);
     });
 }
 
@@ -331,58 +337,21 @@ function addHistory(barcode, qr, status) {
   saveHistoryToDB(barcode, qr, status, time);
 }
 
-// Fungsi untuk load history dari database saat halaman dimuat
-function loadHistoryFromDB() {
-  fetch('index.php?action=get_history')
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        const tbody = document.querySelector('#history tbody');
-        tbody.innerHTML = '';
-        data.data.forEach(row => {
-          const statusClass = row.status === "OK" ? "text-success" : "text-danger";
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${row.waktu}</td><td>${row.barcode}</td><td>${row.qr}</td><td class="fw-bold text-center ${statusClass}">${row.status}</td>`;
-          tbody.appendChild(tr);
-        });
-      }
-    });
-}
-
-function showResult(message, color, bgColor) {
-  const resultElement = document.getElementById("result").querySelector("p");
-  resultElement.textContent = message;
-  resultElement.style.color = color;
-  resultElement.style.fontWeight = "bold";
-
-  // Reset animation
-  resultElement.style.animation = "none";
-  void resultElement.offsetWidth;
-  resultElement.style.animation = "resultPop 0.5s ease-out";
-
-  // Animasi background
-  resultElement.classList.remove("bg-secondary", "bg-success", "bg-danger");
-  resultElement.classList.add(bgColor);
-  resultElement.style.transition = "all 0.5s ease";
-
-  // Show reset button with animation
-  const resetBtn = document.getElementById("resetButtonDiv");
-  if (message !== "Checking...") {
-    resetBtn.classList.remove("d-none");
-    resetBtn.style.animation = "fadeInUp 0.5s ease-out";
-  } else {
-    resetBtn.classList.add("d-none");
-  }
-}
-
-// Panggil loadHistoryFromDB saat halaman dimuat
+// On DOMContentLoaded, setup search/page size and load first page
 window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("barcodeInput").focus();
   loadHistoryFromDB();
 });
 
-// Handle reset button
+// Reset button handler
 document.getElementById("resetButton").addEventListener("click", function () {
+  let btn = document.getElementById("lihatPdfBtn");
+
+  // Remove the Lihat PDF button if it exists
+  if (btn) {
+    btn.remove();
+  }
+
   // Reset input values
   document.getElementById("barcodeInput").value = "";
   document.getElementById("qrInput").value = "";
@@ -439,6 +408,10 @@ document
     }
   });
 
+document.getElementById("qrInput").addEventListener("input", function () {
+  updateLihatPdfBtn();
+});
+
 document.getElementById("qrInput").addEventListener("keypress", function (e) {
   if (e.key === "Enter") {
     e.preventDefault();
@@ -448,22 +421,37 @@ document.getElementById("qrInput").addEventListener("keypress", function (e) {
     );
     this.value = qrValue;
     updateQrExtractedFields();
-    if (qrValue.endsWith(".pdf") || qrValue.includes(".pdf")) {
-      const a = document.createElement("a");
-      a.href = qrValue;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } else {
-      checkMatch();
-    }
+    updateLihatPdfBtn();
+    checkMatch();
     setTimeout(() => {
       document.getElementById("resetButton").focus();
     }, 1500);
   }
 });
+
+function updateLihatPdfBtn() {
+  const qrValue = document.getElementById("qrInput").value.trim();
+  let btn = document.getElementById("lihatPdfBtn");
+  if (!btn) {
+    btn = document.createElement("button");
+    btn.id = "lihatPdfBtn";
+    btn.className = "btn btn-warning mt-2 w-100";
+    btn.style.display = "none";
+    btn.textContent = "LIHAT PDF";
+    btn.type = "button";
+    document.getElementById("qrInput").parentNode.appendChild(btn);
+  }
+  if (qrValue && (qrValue.endsWith(".pdf") || qrValue.includes(".pdf"))) {
+    let href = qrValue.trim();
+    if (!/^https?:\/\//i.test(href))
+      href = "https://" + href.replace(/^https?:\/\//i, "");
+    btn.onclick = () => window.open(href, "_blank");
+    btn.style.display = "block";
+  } else {
+    btn.style.display = "none";
+    btn.onclick = null;
+  }
+}
 
 // Function to fill barcode fields based on the input
 function fillBarcodeFields(barcode) {
@@ -492,10 +480,27 @@ function updateBarcodeFields() {
 function updateQrExtractedFields() {
   const qrCode = document.getElementById("qrInput").value;
   document.getElementById("qrExtracted").value = extractQrValue(qrCode);
-  checkMatch();
+  // checkMatch(); // HAPUS agar tidak double
 }
 
 document
   .getElementById("barcodeInput")
   .addEventListener("input", updateBarcodeFields);
 // document.getElementById("qrInput").addEventListener("input", updateQrExtractedFields);
+
+function showResult(message, color, bgColor) {
+  const resultElement = document.getElementById("result").querySelector("p");
+  resultElement.textContent = message;
+  resultElement.style.color = color;
+  resultElement.style.fontWeight = "bold";
+
+  // Reset animation
+  resultElement.style.animation = "none";
+  void resultElement.offsetWidth;
+  resultElement.style.animation = "resultPop 0.5s ease-out";
+
+  // Animasi background
+  resultElement.classList.remove("bg-secondary", "bg-success", "bg-danger");
+  resultElement.classList.add(bgColor);
+  resultElement.style.transition = "all 0.5s ease";
+}
